@@ -1,16 +1,59 @@
-# Agent Log
+# Rangkuman Perjalanan Backend D.F.S
 
-## Completed Tasks
-- Refactored architecture to use Context Injection instead of Vector RAG for structured sleep data.
-- Rewrote `docs/DATA_CONTRACT.md` detailing exact JSON request/responses and explicit rules for Flutter developers.
-- Updated `functions/src/firestore/schemas.ts` removing `embedding` fields and structuring collections correctly (`UserProfile`, `SleepLog`, `DailyCheckin`, `CalendarEvent`, `RescueSession`).
-- Refactored `functions/src/firestore/sleepRepo.ts` with explicit range queries based on YYYY-MM-DD `date` strings and added an aggregated sleep profile calculator.
-- Refactored `functions/src/firestore/checkinRepo.ts` with explicit range queries based on `date`.
-- Rewrote `functions/src/firestore/embeddingRepo.ts` as an empty MVP stub for future unstructured data.
-- Enforced strict root-level security rules in `firestore/firestore.rules` distinguishing `isOwner` and `isCreatingForSelf` logic, specifically securing fields like `calendarConnected` and `stressScore`.
-- Updated `docs/FIRESTORE_SCHEMA.md` to reflect scalar fields, no embeddings, writer designations (CLIENT/FUNCTION), and updated JSON examples.
+## Fase 1 — Arsitektur & Keputusan Desain
+Koreksi fundamental dari Vector RAG ke **Context Injection** — data skalar (durasi tidur, energi 1–5) tidak butuh embedding, cukup di-inject langsung sebagai JSON ke system prompt Gemini.
 
-## Next Steps
-- Implement logic in `api/` endpoints (e.g. `rescuePlan`, `dailyInsight`, `syncCalendar`).
-- Integrate Context Injection formatting inside `rag/promptBuilder.ts`.
-- Integrate actual Gemini calling code using the structured context.
+## Fase 2 — Fondasi Database
+Membangun seluruh layer Firestore: `schemas.ts`, `sleepRepo.ts`, `checkinRepo.ts`, `embeddingRepo.ts` (stub), security rules, composite indexes, dan `DATA_CONTRACT.md` sebagai kontrak dengan Laras.
+
+## Fase 3 — AI Pipeline (5 File Inti)
+
+| File | Peran |
+|---|---|
+| `retriever.ts` | Mengumpulkan data 14 hari dari Firestore |
+| `promptBuilder.ts` | Merakit konteks → string JSON untuk Gemini |
+| `rescuePlan.ts` | Controller: retriever → prompt → Gemini → response |
+| `dailyInsight.ts` | Controller kedua dengan pola sama |
+| `index.ts` | Entry point, register semua endpoint |
+
+## Fase 4 — Debug & Resolusi Bug
+
+**Bug 1** — `package.json` tidak punya `"build": "tsc"` → tambahkan script build
+**Bug 2** — `tsconfig.json` tidak punya `"rootDir": "src"` → tambahkan rootDir
+**Bug 3** — `firebase.json` menunjuk ke `firestore.rules` yang tidak ada di root → perbaiki path ke `firestore/firestore.rules`
+**Bug 4** — `firestore/firestore.indexes.json` kosong → isi dengan composite index untuk `sleepLogs` dan `dailyCheckins`
+**Bug 5** — Data hilang setiap restart emulator → tambahkan flag `--import` dan `--export-on-exit`
+**Bug 6** — `admin.firestore.Timestamp.fromDate()` undefined → ganti import ke `import { Timestamp } from 'firebase-admin/firestore'`
+**Bug 7** — `catch` block menelan semua error tanpa log → tambahkan `console.error` untuk visibility
+**Bug 8** — Gemini API key terikat project billing-enabled → ganti ke key baru dari AI Studio dengan model `gemini-2.5-flash`
+**Bug 9** — `admin.firestore.FieldValue.serverTimestamp()` undefined → ganti import ke `import { FieldValue } from 'firebase-admin/firestore'`
+
+### Hasil Akhir
+
+```json
+// POST /rescuePlan → 200 OK (11 detik)
+{
+  "success": true,
+  "data": {
+    "checklistItems": [...],
+    "sleepWindowSuggestion": { ... },
+    "caffeineAdvice": "..."
+  }
+}
+```
+
+---
+
+## Status Keseluruhan Proyek
+
+| Komponen | Status |
+|---|---|
+| Firestore Schema & Repos | ✅ Done |
+| Security Rules & Indexes | ✅ Done |
+| DATA_CONTRACT.md | ✅ Done |
+| `retriever.ts` | ✅ Done |
+| `promptBuilder.ts` | ✅ Done |
+| `/rescuePlan` endpoint | ✅ Tested & Working |
+| `/dailyInsight` endpoint | ✅ Built, belum ditest |
+| `/syncCalendar` endpoint | ⬜ Belum dibuat |
+| Google Calendar OAuth | ⬜ Belum dibuat |
