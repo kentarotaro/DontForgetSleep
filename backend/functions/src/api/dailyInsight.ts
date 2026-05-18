@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
-
+import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenAI } from '@google/genai';
 import { buildUserSleepContext } from '../context/retriever';
 import { buildDailyInsightPrompt } from '../gemini/promptBuilder';
@@ -30,6 +31,8 @@ export const dailyInsight = onRequest(async (req, res) => {
   try {
     const context = await buildUserSleepContext(userId, date);
 
+    console.log(`📊 sleepLogs ditemukan: ${context.sleepLogs.length} untuk userId: ${userId}`);
+
     if (context.sleepLogs.length < 5) {
       res.status(400).json({
         success: false,
@@ -43,7 +46,7 @@ export const dailyInsight = onRequest(async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-       console.error("GEMINI_API_KEY tidak ditemukan di environment variables");
+       console.error("🔥 [dailyInsight] ERROR:", "GEMINI_API_KEY tidak ditemukan di environment variables");
        res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Konfigurasi server salah' });
        return;
     }
@@ -65,7 +68,7 @@ export const dailyInsight = onRequest(async (req, res) => {
     try {
       geminiResponseObj = JSON.parse(responseText || '{}');
     } catch (e) {
-      console.error("Gagal melakukan parsing JSON dari Gemini", responseText);
+      console.error("🔥 [dailyInsight] ERROR:", "Gagal melakukan parsing JSON dari Gemini", responseText, e);
       res.status(502).json({
         success: false,
         code: 'GEMINI_UNAVAILABLE',
@@ -74,12 +77,20 @@ export const dailyInsight = onRequest(async (req, res) => {
       return;
     }
 
+    void admin.firestore().collection('rescueSessions').add({
+      userId,
+      triggeredAt: FieldValue.serverTimestamp(),
+      inputSnapshot: { userId, date, type: 'dailyInsight' },
+      geminiResponse: geminiResponseObj,
+      calendarContextDate: date
+    });
+
     res.status(200).json({
       success: true,
       data: geminiResponseObj
     });
   } catch (error: any) {
-    console.error("Error di dailyInsight:", error);
+    console.error("🔥 [dailyInsight] ERROR:", error);
     res.status(500).json({
       success: false,
       code: 'SERVER_ERROR',

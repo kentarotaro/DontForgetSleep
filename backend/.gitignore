@@ -35,3 +35,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+backend/functions/.env
+backend/functions/.env.*
+backend/emulator-data/
+backend/firebase-export-*/
+backend/functions/patch_firestore.js
+backend/functions/lib/
+backend/functions/node_modules/

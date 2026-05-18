@@ -1,6 +1,14 @@
 import * as admin from 'firebase-admin';
 import { SleepLog } from './schemas';
 
+function toJsDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') return new Date(value);
+  if (typeof (value as any).toDate === 'function') return (value as any).toDate();
+  return null;
+}
+
 const db = admin.firestore();
 
 export interface SleepProfileSummary {
@@ -64,17 +72,23 @@ export async function getAggregatedSleepProfile(userId: string, days: number): P
   let totalDuration = 0;
   let totalQuality = 0;
   let totalBedtimeHour = 0;
+  let validBedtimeCount = 0;
 
   logs.forEach(log => {
     totalDuration += log.durationMinutes;
     totalQuality += log.quality;
-    totalBedtimeHour += log.bedtime.toDate().getHours();
+    
+    const bedtime = toJsDate(log.bedtime);
+    if (bedtime) {
+      totalBedtimeHour += bedtime.getHours();
+      validBedtimeCount++;
+    }
   });
 
   return {
     avgDurationMinutes: totalDuration / logs.length,
     avgQuality: totalQuality / logs.length,
-    avgBedtimeHour: totalBedtimeHour / logs.length,
+    avgBedtimeHour: validBedtimeCount > 0 ? totalBedtimeHour / validBedtimeCount : 0,
     totalLogsCount: logs.length
   };
 }

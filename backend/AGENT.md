@@ -42,9 +42,33 @@ Membangun seluruh layer Firestore: `schemas.ts`, `sleepRepo.ts`, `checkinRepo.ts
 }
 ```
 
+## Fase 5 — Integrasi Google Calendar & Penyelesaian Akhir
+
+Pada fase ini, kita menutup celah integrasi kalender dan memastikan semua arsitektur tervalidasi dengan sempurna.
+
+1. **Validasi `/dailyInsight`**: Penyesuaian `admin.firestore.FieldValue` ke impor khusus dan pengamanan *error logging* pada `dailyInsight.ts` agar seragam dengan standar proyek.
+2. **Lapisan Integrasi Kalender Google**:
+   - `calendarClient.ts`: Menangani otentikasi, perolehan, dan penyegaran token OAuth2 menggunakan dependensi `googleapis`.
+   - `eventParser.ts`: Membersihkan respons mentah Google Calendar, menghilangkan acara yang ditolak, dan memastikannya masuk dalam rentang waktu yang relevan.
+   - `stressScorer.ts`: Memproses *stress score* berdasarkan durasi, kata kunci, dan penanda *all-day* dari kalender (maksimal skala 1.0).
+3. **Endpoint `/syncCalendar`**: Pengontrol yang memproses permintaan *sync*, mengambil kalender otentik pengguna, mem-*parsing* acara, menghitung tingkat stres, serta memuatnya ke koleksi `calendarEvents` di Firestore.
+4. **Perbaikan Keamanan Lingkungan**: Pemutakhiran *file* `package.json` untuk dukungan `googleapis` serta templat `.env` bagi *credentials* OAuth2 Google.
+5. **Lubang Arsitektur OAuth Ditutup**: Penambahan *endpoint* `/oauthCallback` (di `oauthCallback.ts`) untuk melayani balasan rujukan langsung dari persetujuan log masuk Google.
+6. **Kompilasi Sukses**: TypeScript kompilasi kembali menghasilkan 0 galat (`tsc` selesai secara bersih).
+
+## Fase 6 — Penyempurnaan Logika & Resolusi Bug Data
+
+Fase ini berfokus pada penyempurnaan akurasi penilaian (scoring) dan penanganan tipe data lintas platform (Flutter -> Firestore).
+
+1. **Restrukturisasi Kamus Stres**: Memindahkan kumpulan kata kunci stres ke file eksternal `stressKeywords.json` dan mengaktifkan `resolveJsonModule` di `tsconfig.json` (Pemisahan *Logic* & *Data* yang lebih bersih).
+2. **Re-kalibrasi Bobot Stres (`stressScorer.ts`)**: Batas deteksi `highStressEvents` di `syncCalendar.ts` diturunkan secara logis menjadi `0.5`. Bobot kata kunci juga dinaikkan (HIGH = 0.4, MEDIUM = 0.2, LIGHT = -0.1) agar algoritma dapat menangkap acara bertekanan tinggi secara lebih realistis.
+3. **Resolusi Type Mismatch (`sleepRepo.ts`)**: Mencegah *crash* akibat pemanggilan `.toDate()` pada data `bedtime` yang dikirim sebagai ISO String oleh klien. Menambahkan fungsi helper `toJsDate` yang kebal terhadap berbagai tipe (`Date`, `Timestamp`, `string`) serta menolak nilai *falsy* untuk menghindari pencemaran data agregat.
+4. **Data Patching (Emulator)**: Menulis *script* injeksi Node.js (`patch_firestore.js`) untuk memperbaiki dokumen `sleepLogs` yang kehilangan data `bedtime` dan `wakeTime` tanpa perlu antarmuka visual (UI).
+5. **Log Diagnostik Sementara**: Menyuntikkan instruksi log (`context.sleepLogs.length`) pada `dailyInsight.ts` guna memastikan bahwa dokumen yang masuk sudah memenuhi syarat kuantitas minimum sebelum diumpankan ke Gemini.
+
 ---
 
-## Status Keseluruhan Proyek
+## Status Keseluruhan Proyek Terkini
 
 | Komponen | Status |
 |---|---|
@@ -54,6 +78,6 @@ Membangun seluruh layer Firestore: `schemas.ts`, `sleepRepo.ts`, `checkinRepo.ts
 | `retriever.ts` | ✅ Done |
 | `promptBuilder.ts` | ✅ Done |
 | `/rescuePlan` endpoint | ✅ Tested & Working |
-| `/dailyInsight` endpoint | ✅ Built, belum ditest |
-| `/syncCalendar` endpoint | ⬜ Belum dibuat |
-| Google Calendar OAuth | ⬜ Belum dibuat |
+| `/dailyInsight` endpoint | ✅ Built & Verified |
+| `/syncCalendar` endpoint | ✅ Built & Verified |
+| Google Calendar OAuth | ✅ Built (`oauthCallback` Ready) |
