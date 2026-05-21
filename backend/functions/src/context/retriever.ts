@@ -1,8 +1,10 @@
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
-import { SleepLog, DailyCheckin, CalendarEvent } from '../firestore/schemas';
+import { SleepLog, DailyCheckin, CalendarEvent, UserProfile } from '../firestore/schemas';
 import { getSleepLogsByRange, getAggregatedSleepProfile, SleepProfileSummary } from '../firestore/sleepRepo';
 import { getRecentCheckins, getCheckinByDate } from '../firestore/checkinRepo';
+import { getUserProfile } from '../firestore/userRepo';
+import { getScheduleItemsByRange } from '../firestore/scheduleRepo';
 
 /**
  * Konteks data pengguna untuk disuntikkan ke prompt Gemini.
@@ -10,6 +12,7 @@ import { getRecentCheckins, getCheckinByDate } from '../firestore/checkinRepo';
 export interface UserSleepContext {
   userId: string;
   queryDate: string; // YYYY-MM-DD
+  userProfile: UserProfile | null;
   sleepLogs: SleepLog[];             // last 14 days, ordered DESC
   recentCheckins: DailyCheckin[];    // last 14 days, ordered DESC  
   sleepProfile: SleepProfileSummary; // aggregated stats
@@ -29,6 +32,7 @@ export async function buildUserSleepContext(
     const recentCheckins = await getRecentCheckins(userId, 14);
     const sleepProfile = await getAggregatedSleepProfile(userId, 14);
     const todayCheckin = await getCheckinByDate(userId, queryDate);
+    const userProfile = await getUserProfile(userId);
 
     // Hitung tanggal untuk calendar events
     const yesterdayStr = getPastDateStr(queryDate, 1);
@@ -38,21 +42,38 @@ export async function buildUserSleepContext(
     const startTimeLimit = new Date(`${yesterdayStr}T00:00:00Z`);
     const endTimeLimit = new Date(`${tomorrowStr}T23:59:59Z`);
 
-    const db = admin.firestore();
-    const calendarSnapshot = await db.collection('calendarEvents')
-      .where('userId', '==', userId)
-      .where('startTime', '>=', Timestamp.fromDate(startTimeLimit))
-      .where('startTime', '<=', Timestamp.fromDate(endTimeLimit))
-      .get();
+    let calendarEvents: CalendarEvent[] = [];
 
-    const calendarEvents: CalendarEvent[] = calendarSnapshot.docs.map(doc => ({
-      eventId: doc.id,
-      ...(doc.data() as Omit<CalendarEvent, 'eventId'>)
-    }));
+    if (userProfile?.calendarConnected) {
+      const db = admin.firestore();
+      const calendarSnapshot = await db.collection('calendarEvents')
+        .where('userId', '==', userId)
+        .where('startTime', '>=', Timestamp.fromDate(startTimeLimit))
+        .where('startTime', '<=', Timestamp.fromDate(endTimeLimit))
+        .get();
+
+      calendarEvents = calendarSnapshot.docs.map(doc => ({
+        eventId: doc.id,
+        ...(doc.data() as Omit<CalendarEvent, 'eventId'>)
+      }));
+    } else {
+      const scheduleItems = await getScheduleItemsByRange(userId, yesterdayStr, tomorrowStr);
+      calendarEvents = scheduleItems.map(item => ({
+        eventId: item.itemId,
+        userId: item.userId,
+        googleEventId: 'manual',
+        title: item.title,
+        startTime: Timestamp.fromDate(new Date(item.startTime)),
+        endTime: Timestamp.fromDate(new Date(item.endTime)),
+        stressScore: 0.3,
+        syncedAt: item.createdAt
+      }));
+    }
 
     return {
       userId,
       queryDate,
+      userProfile,
       sleepLogs,
       recentCheckins,
       sleepProfile,
@@ -65,6 +86,7 @@ export async function buildUserSleepContext(
     return {
       userId,
       queryDate,
+      userProfile: null,
       sleepLogs: [],
       recentCheckins: [],
       sleepProfile: { avgDurationMinutes: 0, avgQuality: 0, avgBedtimeHour: 0, totalLogsCount: 0 },

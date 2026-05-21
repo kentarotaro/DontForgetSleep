@@ -5,10 +5,51 @@ import { Timestamp } from 'firebase-admin/firestore';
  */
 export interface UserProfile {
   userId: string;
-  name: string;
-  chronotype: 'morning' | 'evening' | 'intermediate';
-  targetSleepHours: number;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  
+  // Onboarding Answers
+  morningTirednessFrequency?: 'always' | 'usually' | 'sometimes' | 'rarely';
+  usualSleepDuration?: 'under6h' | '6to8h' | '8to10h' | 'over10h';
+  sleepHabits?: Array<'stayUpLate' | 'sleepWetHair' | 'heavyFoodBeforeSleep' | 'sleepWithLightOn' | 'noneOfThese'>;
+  onboardingCompleted: boolean;
+
+  // Sleep Settings
+  sleepFloorHours?: number; // 6 | 7 | 8
+  preferredWakeTime?: string; // HH:MM
+  preferredBedtime?: string; // HH:MM
+  settingsCompleted: boolean;
+
+  chronotype?: 'morning' | 'evening' | 'intermediate';
+  targetSleepHours?: number;
   calendarConnected: boolean;
+  createdAt: Timestamp;
+}
+
+/**
+ * Jadwal manual atau hasil generate AI.
+ */
+export interface ScheduleItem {
+  itemId?: string;
+  userId: string;
+  title: string;
+  startTime: string; // ISO 8601 string
+  endTime: string; // ISO 8601 string
+  date: string; // YYYY-MM-DD
+  isFromGoogleCalendar: boolean; // false
+  createdAt: Timestamp;
+}
+
+/**
+ * Tujuan produktif (goals) yang ingin diselesaikan pengguna.
+ */
+export interface Goal {
+  goalId?: string;
+  userId: string;
+  title: string;
+  estimatedMinutes: number;
+  priority: 'high' | 'medium' | 'low';
   createdAt: Timestamp;
 }
 

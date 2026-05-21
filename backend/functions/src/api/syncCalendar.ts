@@ -54,6 +54,7 @@ export const syncCalendar = onRequest(async (req, res) => {
     const db = admin.firestore();
     const batch = db.batch();
     const highStressEvents: { title: string, date: string, stressScore: number }[] = [];
+    const allSyncedEvents: { title: string, date: string, stressScore: number }[] = [];
 
     for (const ev of parsedEvents) {
       const stressScore = scoreEvent(ev);
@@ -69,12 +70,13 @@ export const syncCalendar = onRequest(async (req, res) => {
         syncedAt: FieldValue.serverTimestamp()
       }, { merge: true });
 
+      const eventDate = ev.startTime.toISOString().split('T')[0];
+      console.log(`📅 [syncCalendar] Event: "${ev.title}" | Score: ${stressScore} | Date: ${eventDate}`);
+
+      allSyncedEvents.push({ title: ev.title, date: eventDate, stressScore });
+
       if (stressScore >= 0.5) {
-        highStressEvents.push({
-          title: ev.title,
-          date: ev.startTime.toISOString().split('T')[0],
-          stressScore
-        });
+        highStressEvents.push({ title: ev.title, date: eventDate, stressScore });
       }
     }
 
@@ -87,7 +89,8 @@ export const syncCalendar = onRequest(async (req, res) => {
       success: true,
       data: {
         syncedCount: parsedEvents.length,
-        highStressEvents
+        highStressEvents,
+        allSyncedEvents
       }
     });
 

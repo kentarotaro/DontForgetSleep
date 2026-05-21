@@ -124,7 +124,92 @@ Memicu sinkronisasi manual acara Google Calendar pengguna untuk memperbarui skor
 }
 ```
 
-## Bagian 4: Apa yang TIDAK BOLEH dikirim oleh Laras (Klien)
+### GET `/sleepHistory`
+Mengambil histori log tidur dan agregat (summary) dari pengguna selama beberapa hari terakhir.
+
+**Request Query Params:**
+- `userId` (string)
+- `days` (number, opsional, default: 30)
+
+**Response Data Payload:**
+```json
+{
+  "logs": [
+    {
+      "date": "2025-07-15",
+      "durationMinutes": 420,
+      "quality": 4,
+      "bedtime": "23:00",
+      "wakeTime": "06:00"
+    }
+  ],
+  "summary": {
+    "avgDurationMinutes": 410,
+    "avgQuality": 3.5,
+    "totalLogs": 14,
+    "longestSleep": 480,
+    "shortestSleep": 360
+  }
+}
+```
+
+### POST `/scheduleItem`
+Menyimpan jadwal manual harian (untuk pengguna tanpa kalender terhubung).
+
+**Request Body:**
+```json
+{
+  "userId": "string",
+  "title": "string",
+  "startTime": "2025-07-15T09:00:00Z",
+  "endTime": "2025-07-15T11:00:00Z",
+  "date": "2025-07-15"
+}
+```
+
+### GET `/scheduleItems`
+Mengambil daftar jadwal manual pada tanggal tertentu. Query Params: `userId` dan `date`.
+
+### POST `/generateSchedulePlan`
+Menggunakan AI untuk menyusun `goals` ke dalam sela-sela jadwal manual atau kalender, sambil menghormati waktu tidur (sleep window). Menghasilkan `scheduleItems` secara otomatis.
+
+**Request Body:**
+```json
+{
+  "userId": "string",
+  "date": "YYYY-MM-DD"
+}
+```
+
+**Response Data Payload:**
+```json
+{
+  "plannedItems": [
+    {
+      "itemId": "string",
+      "title": "Learn Flutter",
+      "startTime": "2025-07-15T14:00:00Z",
+      "endTime": "2025-07-15T15:00:00Z"
+    }
+  ],
+  "advice": "string"
+}
+```
+
+## Bagian 4: User Lifecycle (Alur Onboarding)
+1. **Register**: Klien melakukan sign-up menggunakan Firebase Auth (Google atau Email). *Backend* (trigger `onUserCreate`) otomatis membuat dokumen di koleksi `userProfiles`.
+2. **Onboarding Questions**: Klien memperbarui dokumen di `userProfiles` untuk atribut `morningTirednessFrequency`, `usualSleepDuration`, dan `sleepHabits`. Set `onboardingCompleted: true`.
+3. **Sleep Settings**: Klien mengatur *sleep floor* dan *wake window* (`preferredBedtime`, `preferredWakeTime`) pada profil. Set `settingsCompleted: true`.
+4. **Daily**: Klien mengisi `dailyCheckins` (di UI awal) dan `sleepLogs`.
+5. **On demand**: Panggil `/rescuePlan`, `/dailyInsight`, `/generateSchedulePlan`, atau `/syncCalendar`.
+
+## Bagian 5: Auth & Notifikasi Lanjutan
+- **Google Auth**: Login dengan Google ditangani sepenuhnya di *client-side* Flutter. Gunakan dependensi `firebase_auth` dan `google_sign_in`. Backend hanya merespons *trigger* setelah Firebase Auth mencatatkan UID baru.
+- **Notifikasi Pintar**: Pesan notifikasi dari `/rescuePlan` dan `/dailyInsight` seperti ("Avoid big meals", "Last call for caffeine", "Schedule conflict") di-jadwalkan oleh Laras secara lokal menggunakan **Local Notifications plugin** di Flutter. Hal ini lebih andal daripada push notifications jarak jauh dari server.
+
+
+
+## Bagian 6: Apa yang TIDAK BOLEH dikirim oleh Laras (Klien)
 
 - *API key* Gemini atau kredensial Google Service Account mana pun.
 - Properti `stressScore` pada `CalendarEvents` (hanya dihitung oleh server).
