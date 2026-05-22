@@ -29,7 +29,7 @@ export { syncCalendar } from './api/syncCalendar';
  */
 export { oauthCallback } from './api/oauthCallback';
 
-export { onUserCreate } from './triggers/onUserCreate';
+// export { onUserCreate } from './triggers/onUserCreate';
 export { sleepHistory } from './api/sleepHistory';
 export { scheduleItemCreate, scheduleItemList, goalItemCreate, goalItemList } from './api/scheduleItem';
 export { generateSchedulePlan } from './api/generateSchedulePlan';
