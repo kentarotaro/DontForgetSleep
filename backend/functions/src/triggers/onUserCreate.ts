@@ -1,23 +1,23 @@
-import { beforeUserCreated } from 'firebase-functions/v2/identity';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-export const onUserCreate = beforeUserCreated(async (event) => {
+// Gunakan v1 auth trigger karena lebih stabil dan tidak memerlukan Firebase Identity Platform (Blocking Functions)
+export const onUserCreate = functions.auth.user().onCreate(async (user) => {
   try {
-    const user = event.data;
-    if (!user) return;
-
     const db = admin.firestore();
 
     let firstName = '';
     let lastName = '';
 
+    // Handle Google Sign-In (displayName tersedia) maupun Email/Password (displayName null)
     if (user.displayName) {
-      const parts = user.displayName.split(' ');
+      const parts = user.displayName.trim().split(' ');
       firstName = parts[0] || '';
       lastName = parts.slice(1).join(' ') || '';
     }
 
+    // Menggunakan Admin SDK: dijamin membypass firestore.rules
     await db.collection('userProfiles').doc(user.uid).set({
       userId: user.uid,
       firstName,
@@ -29,7 +29,7 @@ export const onUserCreate = beforeUserCreated(async (event) => {
       createdAt: FieldValue.serverTimestamp()
     });
 
-    console.log(`✅ [onUserCreate] userProfile created for uid: ${user.uid}`);
+    console.log(`✅ [onUserCreate] userProfile berhasil dibuat untuk UID: ${user.uid}`);
   } catch (error) {
     console.error('🔥 [onUserCreate] ERROR:', error);
   }

@@ -11,11 +11,8 @@ service cloud.firestore {
       return request.auth != null && request.resource.data.userId == request.auth.uid;
     }
 
-    match /userProfiles/{docId} {
-      allow read: if request.auth != null && (docId == request.auth.uid || isOwner(resource.data));
-      // Klien (frontend) tidak bisa langsung mengubah status UserProfile.calendarConnected (Hanya dikelola oleh Cloud Function)
-      allow create: if request.auth != null && docId == request.auth.uid && !("calendarConnected" in request.resource.data);
-      allow update: if request.auth != null && docId == request.auth.uid && !("calendarConnected" in request.resource.data);
+    match /userProfiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     match /sleepLogs/{docId} {
@@ -27,20 +24,29 @@ service cloud.firestore {
     match /dailyCheckins/{docId} {
       allow read: if isOwner(resource.data);
       allow create: if isCreatingForSelf();
-      // DailyCheckin.notes bisa diubah oleh klien (karena ini inputan pengguna, bukan hasil perhitungan mesin)
       allow update: if isOwner(resource.data) && isCreatingForSelf();
       allow delete: if isOwner(resource.data);
     }
 
+    match /scheduleItems/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update, delete: if isOwner(resource.data) && isCreatingForSelf();
+    }
+
+    match /goals/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update, delete: if isOwner(resource.data) && isCreatingForSelf();
+    }
+
     match /calendarEvents/{docId} {
       allow read: if isOwner(resource.data);
-      // stressScore (skor stres) hanya bisa dibaca oleh klien (Hanya Cloud Functions yang boleh menuliskannya)
       allow write: if false; 
     }
 
     match /rescueSessions/{docId} {
       allow read: if isOwner(resource.data);
-      // RescueSessions hanya bisa dibaca oleh klien (Hanya Cloud Functions yang boleh membuatnya)
       allow write: if false;
     }
   }
