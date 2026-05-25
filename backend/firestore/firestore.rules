@@ -18,7 +18,8 @@ service cloud.firestore {
     match /sleepLogs/{docId} {
       allow read: if isOwner(resource.data);
       allow create: if isCreatingForSelf();
-      allow update, delete: if isOwner(resource.data) && isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
     }
 
     match /dailyCheckins/{docId} {
@@ -31,13 +32,15 @@ service cloud.firestore {
     match /scheduleItems/{docId} {
       allow read: if isOwner(resource.data);
       allow create: if isCreatingForSelf();
-      allow update, delete: if isOwner(resource.data) && isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
     }
 
     match /goals/{docId} {
       allow read: if isOwner(resource.data);
       allow create: if isCreatingForSelf();
-      allow update, delete: if isOwner(resource.data) && isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
     }
 
     match /calendarEvents/{docId} {
