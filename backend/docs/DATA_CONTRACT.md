@@ -61,25 +61,27 @@ Setiap Cloud Function memiliki URL tersendiri. Tidak ada base URL tunggal.
  
 ---
  
-## Bagian 3: Autentikasi
- 
-Firebase Authentication sudah aktif dengan dua provider berikut.
- 
-- **Email/Password**: Pengguna mendaftar menggunakan nama depan, nama belakang, email, dan kata sandi. Firebase Auth menyediakan verifikasi email dan reset kata sandi secara bawaan.
-- **Google Sign-In**: Login menggunakan akun Google.
-Autentikasi ditangani sepenuhnya di sisi klien Flutter menggunakan paket `firebase_auth` dan `google_sign_in`. Backend tidak memproses kredensial secara langsung.
- 
-Setelah pengguna berhasil mendaftar melalui metode apapun, Flutter wajib segera membuat dokumen `userProfiles/{uid}` di Firestore dengan struktur berikut:
- 
+## Bagian 3: Autentikasi & Inisialisasi Profil Pengguna
+
+Autentikasi akun dilakukan sepenuhnya di sisi klien (Klien Flutter) secara native menggunakan SDK `firebase_auth` dan `google_sign_in`. Backend tidak menyediakan rute HTTP POST khusus untuk registrasi, login, reset password, maupun OTP.
+
+### Alur Kerja Registrasi & Pembuatan Profil Otomatis:
+1. **Pendaftaran Klien**: Memanggil fungsi native Firebase Auth (contoh: `createUserWithEmailAndPassword` atau Google Sign-In).
+2. **Pemicu Otomatis Peladen (Auth Trigger)**: Begitu akun sukses terdaftar di Firebase Auth, server backend akan otomatis menangkap UID baru tersebut via trigger `onUserCreate.ts`.
+3. **Inisialisasi Firestore**: Server secara otomatis membuat dokumen profil pengguna di lokasi `userProfiles/{userId}` di latar belakang.
+
+### Struktur Data Awal yang Dibuat Otomatis oleh Server:
+Saat dokumen `userProfiles/{userId}` pertama kali diinisialisasi oleh backend, field awal yang terisi adalah:
 ```json
 {
-  "userId": "uid",
-  "firstName": "string",
-  "lastName": "string",
-  "email": "string",
+  "userId": "STRING_UID_USER",
+  "firstName": "Nama Depan (Ekstrak dari Google/Kosong jika Email)",
+  "lastName": "",
+  "email": "user@email.com",
   "calendarConnected": false,
   "onboardingCompleted": false,
-  "settingsCompleted": false
+  "settingsCompleted": false,
+  "createdAt": "SERVER_TIMESTAMP"
 }
 ```
  
