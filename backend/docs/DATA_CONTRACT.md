@@ -70,6 +70,10 @@ Autentikasi akun dilakukan sepenuhnya di sisi klien (Klien Flutter) secara nativ
 2. **Pemicu Otomatis Peladen (Auth Trigger)**: Begitu akun sukses terdaftar di Firebase Auth, server backend akan otomatis menangkap UID baru tersebut via trigger `onUserCreate.ts`.
 3. **Inisialisasi Firestore**: Server secara otomatis membuat dokumen profil pengguna di lokasi `userProfiles/{userId}` di latar belakang.
 
+### Alur Verifikasi Email & Lupa Password (Tanpa OTP Backend):
+- **Verifikasi Email**: Tidak ada pengiriman 4-digit OTP. Klien Flutter memanggil metode native `sendEmailVerification()` dari SDK Firebase Auth. Pengguna akan menerima **link verifikasi** di email mereka.
+- **Lupa Password**: Tidak ada rute backend untuk ini. Klien Flutter memanggil metode native `sendPasswordResetEmail()` dari SDK Firebase Auth. Pengguna akan menerima **link reset password** di email mereka.
+
 ### Struktur Data Awal yang Dibuat Otomatis oleh Server:
 Saat dokumen `userProfiles/{userId}` pertama kali diinisialisasi oleh backend, field awal yang terisi adalah:
 ```json
