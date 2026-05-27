@@ -3,6 +3,7 @@ import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:dont_forget_sleep/theme/typography.dart';
 import 'package:dont_forget_sleep/widgets/secondary_button_button.dart';
 import 'package:dont_forget_sleep/views/get_started/widgets/step_progress_bar.dart';
+import 'package:dont_forget_sleep/services/sleep_preferences_service.dart';
 
 import 'schedule_planner_page.dart';
 
@@ -15,6 +16,12 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _started = sleepPreferencesService.hasCompletedSchedule;
+  }
 
   @override
   Widget build(BuildContext context) {

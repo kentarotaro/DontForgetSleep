@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:dont_forget_sleep/theme/app_colors.dart';
+
 class SettingsSignOutButton extends StatelessWidget {
-  const SettingsSignOutButton({super.key});
+  final VoidCallback? onPressed;
+  final bool isBusy;
+
+  const SettingsSignOutButton({
+    super.key,
+    required this.onPressed,
+    this.isBusy = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +22,10 @@ class SettingsSignOutButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           backgroundColor: const Color(0xFF1E0C1F),
         ),
-        onPressed: () {},
-        child: const Text(
-          'Sign Out',
-          style: TextStyle(
+        onPressed: isBusy ? null : onPressed,
+        child: Text(
+          isBusy ? 'Signing Out...' : 'Sign Out',
+          style: const TextStyle(
             color: AppColors.red300,
             fontWeight: FontWeight.bold,
             fontSize: 16,

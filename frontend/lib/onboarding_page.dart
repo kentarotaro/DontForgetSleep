@@ -6,9 +6,16 @@ import '../widgets/auth_button.dart';
 import 'package:dont_forget_sleep/core/auth_service.dart';
 import 'package:dont_forget_sleep/register_page.dart';
 import 'package:dont_forget_sleep/login_page.dart';
-import 'package:dont_forget_sleep/views/get_started/onboarding_questions_screen.dart';
-class OnboardingPage extends StatelessWidget {
+import 'package:dont_forget_sleep/main.dart';
+class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
+
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  bool _isLoading = false;
 
   String _friendlyAuthMessage(Object error) {
     if (error is FirebaseAuthException) {
@@ -62,15 +69,16 @@ class OnboardingPage extends StatelessWidget {
                             child: AuthButton(
                               isOutlined: true,
                               text: "Register",
-                              onPressed: () {
-
-                              
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute
-                                (builder: (context) => const RegisterPage()),
-    );
-                              }
+                              onPressed: _isLoading
+                                  ? () {}
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const RegisterPage()),
+                                      );
+                                    },
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -78,14 +86,17 @@ class OnboardingPage extends StatelessWidget {
                             child: AuthButton(
                               textColor: Colors.white,
                               text: "Login",
-                              onPressed: (){
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
-                                  ),
-                                );
-                              },
+                              onPressed: _isLoading
+                                  ? () {}
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const LoginPage(),
+                                        ),
+                                      );
+                                    },
                               backgroundColor: AppColors.purple800,
                             ),
                           ),
@@ -94,43 +105,76 @@ class OnboardingPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       AuthButton(
                         isOutlined: true,
-                        text: 'Login with Google',
-                        // onPressed: () => print("login goggle"),
-                        onPressed: () async {
-                            try {
-                              final user = await AuthService().signInWithGoogle();
-                              if (user == null) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Google Sign-In failed.')),
-                                );
-                                return;
-                              }
+                        text: _isLoading ? 'Signing in...' : 'Login with Google',
+                        onPressed: _isLoading
+                            ? () {}
+                            : () async {
+                                setState(() {
+                                  _isLoading = true;
+                                });
+                                try {
+                                  final user =
+                                      await AuthService().signInWithGoogle();
+                                  if (user == null) {
+                                    if (!context.mounted) return;
+                                    setState(() {
+                                      _isLoading = false;
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Google Sign-In failed.')),
+                                    );
+                                    return;
+                                  }
 
-                              if (!context.mounted) return;
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(builder: (_) => const OnboardingQuestionsScreen()),
-                                (route) => false,
-                              );
-                            } on FirebaseAuthException catch (error) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(_friendlyAuthMessage(error))),
-                              );
-                            } catch (error) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(_friendlyAuthMessage(error))),
-                              );
-                            }
-                        },
-                        icon: Image.asset(
-                          'assets/images/googleLogo.png',
-                          width: 24,
-                          height: 24,
-                          fit: BoxFit.contain,
-                        ),
+                                  if (!context.mounted) return;
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const AuthWrapper()),
+                                    (route) => false,
+                                  );
+                                } on FirebaseAuthException catch (error) {
+                                  if (!context.mounted) return;
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            _friendlyAuthMessage(error))),
+                                  );
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            _friendlyAuthMessage(error))),
+                                  );
+                                }
+                              },
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Image.asset(
+                                'assets/images/googleLogo.png',
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.contain,
+                              ),
                       ),
                     ],
                   ),

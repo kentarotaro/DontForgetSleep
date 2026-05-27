@@ -4,6 +4,7 @@ import 'package:dont_forget_sleep/widgets/labeled_text_field.dart';
 import 'package:dont_forget_sleep/widgets/primary_button.dart';
 import 'package:dont_forget_sleep/models/forgot_password_item.dart';
 import 'package:dont_forget_sleep/core/auth_service.dart';
+import 'package:dont_forget_sleep/new_password_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -41,6 +42,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Password reset link sent to $email.')),
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NewPassword(email: email),
+        ),
       );
     } catch (_) {
       if (!mounted) return;

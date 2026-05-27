@@ -13,8 +13,17 @@ class SchedulePlannerStepTwo extends StatelessWidget {
   final List<Color> goalColors;
   final String Function(double) formatTime;
   final Color Function(ScheduleBlock) getBlockColor;
+  final int sleepFloorHours;
+  final String preferredBedtime;
+  final String preferredWakeTime;
+  final String generationLabel;
+  final Color generationColor;
+  final String? aiAdvice;
+  final bool isSaved;
   final VoidCallback onEdit;
   final VoidCallback onComplete;
+  final Function(String day, int hour)? onEmptySlotTap;
+  final Function(ScheduleBlock block, String day)? onBlockTap;
 
   const SchedulePlannerStepTwo({
     super.key,
@@ -24,22 +33,47 @@ class SchedulePlannerStepTwo extends StatelessWidget {
     required this.goalColors,
     required this.formatTime,
     required this.getBlockColor,
+    required this.sleepFloorHours,
+    required this.preferredBedtime,
+    required this.preferredWakeTime,
+    required this.generationLabel,
+    required this.generationColor,
+    this.aiAdvice,
+    this.isSaved = false,
     required this.onEdit,
     required this.onComplete,
+    this.onEmptySlotTap,
+    this.onBlockTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final String sectionTitle = isSaved ? 'Schedule' : 'Your week';
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your week', style: AppTextStyles.sectionTitle),
-          const SizedBox(height: 4),
-          const Text(
-            'Sleep-protected and auto scheduled',
-            style: AppTextStyles.itemMeta,
+          Text(sectionTitle, style: AppTextStyles.sectionTitle),
+          if (!isSaved) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Sleep-protected and auto scheduled',
+              style: AppTextStyles.itemMeta,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: generationColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: generationColor.withOpacity(0.35)),
+            ),
+            child: Text(
+              generationLabel,
+              style: AppTextStyles.itemMeta.copyWith(color: generationColor),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Wrap(
@@ -48,7 +82,13 @@ class SchedulePlannerStepTwo extends StatelessWidget {
             children: [
               _buildLegendItem('Sleep', AppColors.teal),
               _buildLegendItem('Fixed', AppColors.purple800),
-              ...goals.asMap().entries.map((e) => _buildLegendItem(e.value.name, goalColors[e.key % goalColors.length])),
+              _buildLegendItem('Calendar 📅', AppColors.bluePrimary),
+              ...goals.asMap().entries.map(
+                (e) => _buildLegendItem(
+                  e.value.name,
+                  goalColors[e.key % goalColors.length],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -72,7 +112,9 @@ class SchedulePlannerStepTwo extends StatelessWidget {
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
                       color: AppColors.tealMuted,
-                      border: Border.all(color: AppColors.teal.withOpacity(0.13)),
+                      border: Border.all(
+                        color: AppColors.teal.withOpacity(0.13),
+                      ),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Row(
@@ -83,31 +125,86 @@ class SchedulePlannerStepTwo extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Sleep floor protected', style: AppTextStyles.itemTitle),
+                              Text(
+                                'Sleep floor protected',
+                                style: AppTextStyles.itemTitle,
+                              ),
                               const SizedBox(height: 2),
-                              Text('11 PM – 7 AM · 8 hours every night', style: AppTextStyles.itemMeta),
+                              Text(
+                                '$preferredBedtime – $preferredWakeTime · $sleepFloorHours hours every night',
+                                style: AppTextStyles.itemMeta,
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
                   ),
+                  // if (aiAdvice != null && aiAdvice!.isNotEmpty) ...[
+                  //   const SizedBox(height: AppSpacing.md),
+                  //   Container(
+                  //     padding: const EdgeInsets.all(AppSpacing.lg),
+                  //     decoration: BoxDecoration(
+                  //       gradient: const LinearGradient(
+                  //         colors: [Color(0xFF2E1A47), Color(0xFF130B24)],
+                  //         begin: Alignment.topLeft,
+                  //         end: Alignment.bottomRight,
+                  //       ),
+                  //       border: Border.all(
+                  //         color: AppColors.purple500.withOpacity(0.4),
+                  //         width: 1,
+                  //       ),
+                  //       borderRadius: BorderRadius.circular(18),
+                  //     ),
+                  //     // child: Row(
+                  //     //   crossAxisAlignment: CrossAxisAlignment.start,
+                  //     //   children: [
+                  //     //     const Text('✨', style: TextStyle(fontSize: 24)),
+                  //     //     const SizedBox(width: AppSpacing.md),
+                  //     //     Expanded(
+                  //     //       child: Column(
+                  //     //         crossAxisAlignment: CrossAxisAlignment.start,
+                  //     //         children: [
+                  //     //           Text(
+                  //     //             'AI Sleep Window Advice',
+                  //     //             style: AppTextStyles.itemTitle.copyWith(
+                  //     //               color: AppColors.purple300,
+                  //     //               fontWeight: FontWeight.bold,
+                  //     //             ),
+                  //     //           ),
+                  //     //           const SizedBox(height: 6),
+                  //     //           Text(
+                  //     //             aiAdvice!,
+                  //     //             style: AppTextStyles.itemMeta.copyWith(
+                  //     //               color: Colors.white.withOpacity(0.9),
+                  //     //               height: 1.4,
+                  //     //             ),
+                  //     //           ),
+                  //     //         ],
+                  //     //       ),
+                  //     //     ),
+                  //     //   ],
+                  //     // ),
+                  //   ),
+                  // ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          GlowingButton(
-            text: 'Complete',
-            onPressed: onComplete,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Center(
-            child: TextButton(
-              onPressed: onEdit,
-              child: Text('Edit', style: AppTextStyles.buttonSecondary),
+          if (!isSaved) ...[
+            const SizedBox(height: AppSpacing.md),
+            GlowingButton(text: 'Complete', onPressed: onComplete),
+            const SizedBox(height: AppSpacing.md),
+            Center(
+              child: TextButton(
+                onPressed: onEdit,
+                child: Text('Edit', style: AppTextStyles.buttonSecondary),
+              ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: AppSpacing.md),
+            GlowingButton(text: 'Edit Plan', onPressed: onEdit),
+          ],
         ],
       ),
     );
@@ -117,15 +214,22 @@ class SchedulePlannerStepTwo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
-        Text(label, style: AppTextStyles.itemMeta.copyWith(fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: AppTextStyles.itemMeta.copyWith(fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }
 
   Widget _buildCalendarGrid() {
-    const int calStart = 6;
+    const int calStart = 4;
     const int calEnd = 24;
 
     return Row(
@@ -133,7 +237,13 @@ class SchedulePlannerStepTwo extends StatelessWidget {
       children: [
         Column(
           children: [
-            Container(height: 30, width: 40, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border)))),
+            Container(
+              height: 30,
+              width: 40,
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+            ),
             ...List.generate(calEnd - calStart, (index) {
               final int hour = calStart + index;
               return Container(
@@ -141,10 +251,15 @@ class SchedulePlannerStepTwo extends StatelessWidget {
                 width: 40,
                 alignment: Alignment.topRight,
                 padding: const EdgeInsets.only(right: 4, top: 2),
-                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: AppColors.border)),
+                ),
                 child: Text(
-                  hour % 3 == 0 ? formatTime(hour.toDouble()) : '',
-                  style: AppTextStyles.stepLabelActive.copyWith(color: AppColors.textTertiary, fontSize: 8),
+                  formatTime(hour.toDouble()),
+                  style: AppTextStyles.stepLabelActive.copyWith(
+                    color: AppColors.textTertiary,
+                    fontSize: 8,
+                  ),
                 ),
               );
             }),
@@ -157,46 +272,107 @@ class SchedulePlannerStepTwo extends StatelessWidget {
                 height: 30,
                 width: 60,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border), left: BorderSide(color: AppColors.border))),
-                child: Text(day, style: AppTextStyles.stepLabelActive.copyWith(color: AppColors.textSecondary)),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.border),
+                    left: BorderSide(color: AppColors.border),
+                  ),
+                ),
+                child: Text(
+                  day,
+                  style: AppTextStyles.stepLabelActive.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
-              ...List.generate(calEnd - calStart, (index) {
-                final int hour = calStart + index;
-                final blocks = schedule[day] ?? [];
-                final block = blocks.where((b) => b.start >= calStart && (b.start.floor() == hour || (b.start >= hour && b.start < hour + 1))).firstOrNull;
-
-                Widget content = const SizedBox();
-                if (block != null) {
-                  double h = (block.end - block.start) * 36 - 2;
-                  if (h < 16) h = 16;
-                  final Color color = getBlockColor(block);
-                  content = Container(
-                    height: h,
-                    margin: const EdgeInsets.all(1),
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(5),
-                      boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 4)],
+              SizedBox(
+                width: 60,
+                height: (calEnd - calStart) * 36.0,
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    // Grid background lines & InkWell for empty slots
+                    Column(
+                      children: List.generate(calEnd - calStart, (index) {
+                        final int hour = calStart + index;
+                        return Container(
+                          height: 36,
+                          width: 60,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppColors.border),
+                              left: BorderSide(color: AppColors.border),
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => onEmptySlotTap?.call(day, hour),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
-                    alignment: Alignment.topCenter,
-                    child: Text(
-                      block.type == 'sleep' ? '💤' : block.name,
-                      style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, height: 1.2),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: (h / 12).floor(),
-                    ),
-                  );
-                }
+                    // Positioned event blocks
+                    ...((schedule[day] ?? [])
+                        .where((b) => b.end > calStart && b.start < calEnd)
+                        .map((block) {
+                          final double effectiveStart = block.start < calStart
+                              ? calStart.toDouble()
+                              : block.start;
+                          final double effectiveEnd = block.end > calEnd
+                              ? calEnd.toDouble()
+                              : block.end;
 
-                return Container(
-                  height: 36,
-                  width: 60,
-                  alignment: Alignment.topLeft,
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border), left: BorderSide(color: AppColors.border))),
-                  child: content,
-                );
-              }),
+                          final double top = (effectiveStart - calStart) * 36.0;
+                          double height =
+                              (effectiveEnd - effectiveStart) * 36.0;
+                          if (height < 16) height = 16;
+
+                          final Color color = getBlockColor(block);
+                          return Positioned(
+                            top: top,
+                            height: height,
+                            left: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => onBlockTap?.call(block, day),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 1,
+                                  vertical: 1,
+                                ),
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: color.withOpacity(0.2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.topCenter,
+                                child: Text(
+                                  block.type == 'sleep' ? '💤' : block.name,
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.2,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: (height / 12).floor().clamp(1, 10),
+                                ),
+                              ),
+                            ),
+                          );
+                        })),
+                  ],
+                ),
+              ),
             ],
           );
         }).toList(),

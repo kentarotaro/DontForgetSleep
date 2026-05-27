@@ -2,7 +2,7 @@ import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/history_service_locator.dart';
+import 'package:dont_forget_sleep/features/history/data/history_service_locator.dart';
 import '../../data/models/sleep_entry.dart';
 import '../widgets/sleep_history_tile.dart';
 import '../widgets/summary_stat_card.dart';
@@ -82,6 +82,12 @@ class _SleepHistoryPageState extends State<SleepHistoryPage> {
     return lastSeven.map((entry) => entry.duration.inMinutes / 60.0).toList();
   }
 
+  List<String> _buildChartLabels(List<SleepEntry> entries) {
+    final nightEntries = entries.where((entry) => entry.type == SleepType.nightSleep).toList();
+    final lastSeven = nightEntries.take(7).toList().reversed.toList();
+    return lastSeven.map((entry) => DateFormat('E').format(entry.endTime)).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -116,7 +122,7 @@ class _SleepHistoryPageState extends State<SleepHistoryPage> {
                   body: RefreshIndicator(
                     color: const Color(0xFF7B4DFF),
                     backgroundColor: const Color(0xFF11071F),
-                    onRefresh: () async {},
+                    onRefresh: () => sleepHistoryService.fetchSleepHistory(),
                     child: CustomScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
@@ -215,7 +221,7 @@ class _SleepHistoryPageState extends State<SleepHistoryPage> {
                                   const SizedBox(height: 16),
                                   WeeklySleepChart(
                                     sleepDurations: _buildChartData(entries),
-                                    dayLabels: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                    dayLabels: _buildChartLabels(entries),
                                   ),
                                 ],
                               ),

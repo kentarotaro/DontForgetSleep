@@ -5,6 +5,7 @@ class SecondaryButton extends StatelessWidget {
   final String text;
   final Color? disabledColor;
   final Color? disabledTextColor;
+  final bool isBusy;
 
   const SecondaryButton({
     super.key,
@@ -12,6 +13,7 @@ class SecondaryButton extends StatelessWidget {
     required this.text,
     this.disabledColor,
     this.disabledTextColor,
+    this.isBusy = false,
   });
 
   @override
@@ -20,7 +22,7 @@ class SecondaryButton extends StatelessWidget {
       width: double.infinity,
       height: 64,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isBusy ? null : onPressed,
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
             if (states.contains(MaterialState.disabled)) return disabledColor ?? const Color(0xff452E7B);
@@ -35,13 +37,22 @@ class SecondaryButton extends StatelessWidget {
           // Keep minimumSize to match previous SizedBox height behavior
           minimumSize: MaterialStateProperty.all(const Size.fromHeight(64)),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: isBusy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

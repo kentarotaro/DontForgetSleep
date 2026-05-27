@@ -8,6 +8,8 @@ class SettingsSleepPreferencesSection extends StatelessWidget {
   final ValueChanged<int> onSelectedIndexChanged;
   final String wakeTimeText;
   final String bedTimeText;
+  final VoidCallback? onWakeTimeTap;
+  final VoidCallback? onBedTimeTap;
 
   const SettingsSleepPreferencesSection({
     super.key,
@@ -15,6 +17,8 @@ class SettingsSleepPreferencesSection extends StatelessWidget {
     required this.onSelectedIndexChanged,
     required this.wakeTimeText,
     required this.bedTimeText,
+    this.onWakeTimeTap,
+    this.onBedTimeTap,
   });
 
   @override
@@ -43,7 +47,7 @@ class SettingsSleepPreferencesSection extends StatelessWidget {
                       child: GestureDetector(
                         onTap: () => onSelectedIndexChanged(index),
                         child: Container(
-                          height: 55,
+                           height: 55,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: selected ? Colors.transparent : Colors.transparent,
@@ -74,8 +78,17 @@ class SettingsSleepPreferencesSection extends StatelessWidget {
           border: Border.all(color: AppColors.purple900, width: 1),
           child: Column(
             children: [
-              _TimeValueRow(label: 'Wake time', value: wakeTimeText, showDivider: true),
-              _TimeValueRow(label: 'Bedtime', value: bedTimeText),
+              _TimeValueRow(
+                label: 'Wake time',
+                value: wakeTimeText,
+                showDivider: true,
+                onTap: onWakeTimeTap,
+              ),
+              _TimeValueRow(
+                label: 'Bedtime',
+                value: bedTimeText,
+                onTap: onBedTimeTap,
+              ),
             ],
           ),
         ),
@@ -87,29 +100,44 @@ class SettingsSleepPreferencesSection extends StatelessWidget {
     required String label,
     required String value,
     bool showDivider = false,
+    VoidCallback? onTap,
   }) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.purple400,
-                  fontSize: 12,
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.purple400,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.purple400,
+                      size: 16,
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (showDivider) Divider(color: AppColors.purple900, height: 10, thickness: 1),

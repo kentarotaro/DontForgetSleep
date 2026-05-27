@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/sleep_history_service.dart';
 import '../../domain/sleep_history_store.dart';
 import '../models/sleep_entry.dart';
+import '../datasources/firestore_sleep_history_store.dart';
 
 class SleepHistoryRepository extends ChangeNotifier implements SleepHistoryService {
   final SleepHistoryStore _store;
@@ -12,6 +13,14 @@ class SleepHistoryRepository extends ChangeNotifier implements SleepHistoryServi
   SleepHistoryRepository({required SleepHistoryStore store})
       : _store = store,
         _entries = store.seedEntries();
+
+  Future<void> fetchSleepHistory() async {
+    if (_store is FirestoreSleepHistoryStore) {
+      await (_store as FirestoreSleepHistoryStore).loadEntries();
+      _entries = _store.seedEntries();
+      notifyListeners();
+    }
+  }
 
   @override
   Future<List<SleepEntry>> getSleepHistory() async {

@@ -90,20 +90,33 @@ class SchedulePlannerStepZero extends StatelessWidget {
                       onHideCommitForm();
                     },
                     child: Container(
-                      margin: EdgeInsets.only(right: index == days.length - 1 ? 0 : 4),
+                      margin: EdgeInsets.only(
+                        right: index == days.length - 1 ? 0 : 4,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: isAct ? AppColors.primaryMuted : Colors.transparent,
+                        color: isAct
+                            ? AppColors.primaryMuted
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isAct ? AppColors.purple500 : AppColors.neutral800, width: 1),
+                        border: Border.all(
+                          color: isAct
+                              ? AppColors.purple500
+                              : AppColors.neutral800,
+                          width: 1,
+                        ),
                       ),
                       child: Column(
                         children: [
                           Text(
                             days[index],
                             style: AppTextStyles.stepLabelActive.copyWith(
-                              color: isAct ? AppColors.purple500 : AppColors.neutral500,
-                              fontWeight: isAct ? FontWeight.w800 : FontWeight.w600,
+                              color: isAct
+                                  ? AppColors.purple500
+                                  : AppColors.neutral500,
+                              fontWeight: isAct
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                               fontSize: 12,
                             ),
                           ),
@@ -114,7 +127,9 @@ class SchedulePlannerStepZero extends StatelessWidget {
                               height: 4,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: isAct ? AppColors.purple500 : AppColors.neutral500,
+                                color: isAct
+                                    ? AppColors.purple500
+                                    : AppColors.neutral500,
                               ),
                             ),
                         ],
@@ -125,7 +140,10 @@ class SchedulePlannerStepZero extends StatelessWidget {
               }),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(fullDays[activeDay], style: AppTextStyles.itemTitle.copyWith(fontSize: 15)),
+            Text(
+              fullDays[activeDay],
+              style: AppTextStyles.itemTitle.copyWith(fontSize: 15),
+            ),
             const SizedBox(height: AppSpacing.md),
             ...items.asMap().entries.map((e) {
               return Padding(
@@ -133,7 +151,8 @@ class SchedulePlannerStepZero extends StatelessWidget {
                 child: ScheduleCard(
                   title: e.value.name,
                   category: e.value.category,
-                  subtitle: '${formatTime(e.value.start)} – ${formatTime(e.value.end)}',
+                  subtitle:
+                      '${formatTime(e.value.start)} – ${formatTime(e.value.end)}',
                   barColor: AppColors.purple500,
                   onDelete: () => onDeleteCommitment(e.value),
                 ),
@@ -151,7 +170,10 @@ class SchedulePlannerStepZero extends StatelessWidget {
                   children: [
                     const Text('📭', style: TextStyle(fontSize: 28)),
                     const SizedBox(height: 8),
-                    Text('${fullDays[activeDay]} is empty', style: AppTextStyles.itemMeta),
+                    Text(
+                      '${fullDays[activeDay]} is empty',
+                      style: AppTextStyles.itemMeta,
+                    ),
                   ],
                 ),
               ),
@@ -169,7 +191,9 @@ class SchedulePlannerStepZero extends StatelessWidget {
                   child: Center(
                     child: Text(
                       '+ Add to ${fullDays[activeDay]}',
-                      style: AppTextStyles.itemTitle.copyWith(color: AppColors.purple500),
+                      style: AppTextStyles.itemTitle.copyWith(
+                        color: AppColors.purple500,
+                      ),
                     ),
                   ),
                 ),
@@ -252,7 +276,9 @@ class _CommitmentFormState extends State<_CommitmentForm> {
       // keep controller in sync when parent updates cName (e.g., preset tapped)
       _controller.text = widget.cName;
       // move cursor to end
-      _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
     }
     if (oldWidget.cCategory != widget.cCategory) {
       _selectedCategory = widget.cCategory;
@@ -280,15 +306,26 @@ class _CommitmentFormState extends State<_CommitmentForm> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: ['📚 Class','💼 Work','🧪 Lab','🏃🏼 Practice']
-                .map((p) => PresetChip(label: p, isSelected: _selectedCategory == p, onTap: () {
+            children: ['📚 Class', '💼 Work', '🧪 Lab', '🏃🏼 Practice']
+                .map(
+                  (p) => PresetChip(
+                    label: p,
+                    isSelected: _selectedCategory == p,
+                    onTap: () {
                       setState(() => _selectedCategory = p);
                       widget.onCategoryChanged(p);
-                    }))
+                    },
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: AppSpacing.md),
-          DarkInput(hintText: "What's happening?", controller: _controller, onChanged: widget.onNameChanged, autoFocus: true),
+          DarkInput(
+            hintText: "What's happening?",
+            controller: _controller,
+            onChanged: widget.onNameChanged,
+            autoFocus: true,
+          ),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -318,14 +355,19 @@ class _CommitmentFormState extends State<_CommitmentForm> {
                 child: OutlinedButton(
                   onPressed: widget.onCancel,
                   style: OutlinedButton.styleFrom(
-                    backgroundColor:  Colors.black,
+                    backgroundColor: Colors.black,
                     side: const BorderSide(color: AppColors.purple800),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -338,7 +380,9 @@ class _CommitmentFormState extends State<_CommitmentForm> {
                     disabledBackgroundColor: const Color(0xFF452E7B),
                     foregroundColor: Colors.white,
                     disabledForegroundColor: const Color(0xFF7F7F7F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(
@@ -390,12 +434,20 @@ class _TimePickerField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.stepLabelActive.copyWith(color: AppColors.textTertiary)),
+        Text(
+          label,
+          style: AppTextStyles.stepLabelActive.copyWith(
+            color: AppColors.textTertiary,
+          ),
+        ),
         const SizedBox(height: 4),
         GestureDetector(
           onTap: () => _pickTime(context),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: 12,
+            ),
             decoration: BoxDecoration(
               color: AppColors.bgInput,
               borderRadius: BorderRadius.circular(12),
@@ -403,7 +455,15 @@ class _TimePickerField extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Expanded(child: Text(formatTime(value), style: AppTextStyles.itemTitle.copyWith(fontWeight: FontWeight.w600, fontSize: 13))),
+                Expanded(
+                  child: Text(
+                    formatTime(value),
+                    style: AppTextStyles.itemTitle.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
                 // const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary),
               ],
             ),

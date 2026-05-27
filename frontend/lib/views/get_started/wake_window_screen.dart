@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:dont_forget_sleep/theme/typography.dart';
 import 'package:dont_forget_sleep/widgets/secondary_button_button.dart';
@@ -19,6 +23,7 @@ class WakeWindowScreen extends StatefulWidget {
 class _WakeWindowScreenState extends State<WakeWindowScreen> {
   TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
   TimeOfDay _bedTime = const TimeOfDay(hour: 23, minute: 0);
+  bool _isSaving = false;
 
   Future<void> _selectTime(BuildContext context, bool isWakeUp) async {
     final TimeOfDay initialTime = isWakeUp ? _wakeUpTime : _bedTime;
@@ -67,7 +72,8 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
       wakeHour += 24;
     }
 
-    int totalMinutes = (wakeHour * 60 + wakeMinute) - (bedHour * 60 + bedMinute);
+    int totalMinutes =
+        (wakeHour * 60 + wakeMinute) - (bedHour * 60 + bedMinute);
     return (totalMinutes / 60).round();
   }
 
@@ -96,12 +102,12 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Your wake window",
+                "Set your wake window",
                 style: AppTextStyles.authTitle.copyWith(fontSize: 32),
               ),
               const SizedBox(height: 16),
               Text(
-                "When do you usually wake up and go to bed?",
+                "What are your ideal wake-up and bedtime goals?",
                 style: AppTextStyles.labelSecondary.copyWith(
                   color: AppColors.purple500,
                   fontSize: 15,
@@ -118,7 +124,6 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
               ),
               const SizedBox(height: 12),
               TimePickerCard(
-                
                 icon: Icons.nightlight_round,
                 iconColor: Colors.amber,
                 title: "Bedtime",
@@ -165,7 +170,9 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
                           : "Below your ${widget.sleepFloorHours}h floor, you might want to adjust this.",
                       style: AppTextStyles.labelSecondary.copyWith(
                         fontSize: 12,
-                        color: isAboveFloor ? AppColors.purple350 : AppColors.error,
+                        color: isAboveFloor
+                            ? AppColors.purple350
+                            : AppColors.error,
                       ),
                     ),
                   ],
@@ -174,16 +181,66 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
               const Spacer(),
               SecondaryButton(
                 text: "Continue",
-                onPressed: () {
-                  sleepPreferencesService.completeOnboarding();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
-                    (route) => false,
-                  );
-                },
+                isBusy: _isSaving,
+                onPressed: _isSaving
+                    ? null
+                    : () {
+                        setState(() {
+                          _isSaving = true;
+                        });
+
+                        final navigator = Navigator.of(context);
+                        final user = FirebaseAuth.instance.currentUser;
+
+                        sleepPreferencesService.setTargetSleepFloorHours(
+                          widget.sleepFloorHours,
+                        );
+                        if (user != null) {
+                          sleepPreferencesService.updateWakeTime(
+                            user.uid,
+                            _formatTime(_wakeUpTime),
+                          );
+                          sleepPreferencesService.updateBedtime(
+                            user.uid,
+                            _formatTime(_bedTime),
+                          );
+                        }
+                        sleepPreferencesService.completeOnboarding();
+                        sleepPreferencesService.completeSettings();
+
+                        navigator.pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const HomePage(),
+                          ),
+                          (route) => false,
+                        );
+
+                        if (user != null) {
+                          unawaited(
+                            FirebaseFirestore.instance
+                                .collection('userProfiles')
+                                .doc(user.uid)
+                                .set({
+                                  'sleepFloorHours': widget.sleepFloorHours,
+                                  'targetSleepHours': widget.sleepFloorHours,
+                                  'preferredWakeTime': _formatTime(_wakeUpTime),
+                                  'preferredBedtime': _formatTime(_bedTime),
+                                  'settingsCompleted': true,
+                                }, SetOptions(merge: true))
+                                .whenComplete(() {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isSaving = false;
+                                    });
+                                  }
+                                }),
+                          );
+                        } else if (mounted) {
+                          setState(() {
+                            _isSaving = false;
+                          });
+                        }
+                      },
               ),
               const SizedBox(height: 16),
               Center(
@@ -192,7 +249,7 @@ class _WakeWindowScreenState extends State<WakeWindowScreen> {
                   child: Text(
                     "Back",
                     style: AppTextStyles.labelSecondary.copyWith(
-                       color: const Color(0xff8561B5),
+                      color: const Color(0xff8561B5),
                       fontSize: 14,
                     ),
                   ),

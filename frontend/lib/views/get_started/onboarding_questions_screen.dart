@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:dont_forget_sleep/models/onboard_item.dart';
 import 'package:dont_forget_sleep/services/sleep_preferences_service.dart';
-import 'package:dont_forget_sleep/navbar.dart';
 import 'package:dont_forget_sleep/views/get_started/get_started_screen.dart';
 
 class OnboardingQuestionsScreen extends StatefulWidget {
@@ -15,6 +18,7 @@ class OnboardingQuestionsScreen extends StatefulWidget {
 class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen> {
   final PageController _pageController = PageController();
   int _currentQuestionIndex = 0;
+  bool _isSubmitting = false;
 
   // Selected values
   String? _tiredFrequency;
@@ -48,19 +52,89 @@ class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen> {
   }
 
   void _submit() {
-    // Save selections to sleepPreferencesService
+    if (_isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final user = FirebaseAuth.instance.currentUser;
+    final habitsMapped = _selectedHabits.map((h) {
+      switch (h) {
+        case 'Stay up late':
+          return 'stayUpLate';
+        case 'Sleep with wet hair':
+          return 'sleepWetHair';
+        case 'Heavy food before sleep':
+          return 'heavyFoodBeforeSleep';
+        case 'Sleep with light on':
+          return 'sleepWithLightOn';
+        default:
+          return 'noneOfThese';
+      }
+    }).toList();
+
+    final tiredFreqMapped = (_tiredFrequency ?? 'Rarely').toLowerCase();
+    final chronotype = tiredFreqMapped == 'rarely'
+        ? 'morning'
+        : (tiredFreqMapped == 'always' ? 'evening' : 'intermediate');
+
+    String sleepDurationMapped = '6to8h';
+    final sleepAmount = _sleepAmount ?? '6-8 hours';
+    if (sleepAmount.contains('less') || sleepAmount.contains('6 hours or less')) {
+      sleepDurationMapped = 'under6h';
+    } else if (sleepAmount.contains('8-10') || sleepAmount.contains('8-10 hours')) {
+      sleepDurationMapped = '8to10h';
+    } else if (sleepAmount.contains('more') || sleepAmount.contains('10 hours or more')) {
+      sleepDurationMapped = 'over10h';
+    }
+
     sleepPreferencesService.setPersonalizationData(
       tiredFrequency: _tiredFrequency ?? 'Rarely',
       sleepAmount: _sleepAmount ?? '6-8 hours',
       habits: _selectedHabits,
     );
+    sleepPreferencesService.completeOnboarding();
 
-    // Redirect to Get Started flow
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const GetStartedScreen()),
-      (route) => false,
-    );
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const GetStartedScreen()),
+        (route) => false,
+      );
+    }
+
+    if (user != null) {
+      unawaited(() async {
+        try {
+          await FirebaseFirestore.instance.collection('userProfiles').doc(user.uid).set({
+            'morningTirednessFrequency': tiredFreqMapped,
+            'chronotype': chronotype,
+            'usualSleepDuration': sleepDurationMapped,
+            'sleepHabits': habitsMapped,
+            'onboardingCompleted': true,
+          }, SetOptions(merge: true));
+        } catch (e) {
+          // ignore: avoid_print
+          print('Error updating onboarding questions in Firestore: $e');
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
+        }
+      }());
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   Widget _buildAppLogo() {
@@ -304,7 +378,7 @@ class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen> {
           padding: const EdgeInsets.only(bottom: 24.0),
           child: Center(
             child: GestureDetector(
-              onTap: _submit,
+              onTap: _isSubmitting ? null : _submit,
               child: Container(
                 width: 56,
                 height: 56,

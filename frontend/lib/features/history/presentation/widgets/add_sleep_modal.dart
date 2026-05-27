@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:uuid/uuid.dart';
+import 'package:dont_forget_sleep/theme/app_colors.dart';
 import '../../data/models/sleep_entry.dart';
 
 Future<SleepEntry?> showAddSleepDialog(
@@ -184,7 +185,7 @@ class _AddSleepDialogState extends State<AddSleepDialog> {
     }
 
     final entry = SleepEntry(
-      id: widget.initialEntry?.id ?? '',
+      id: widget.initialEntry?.id ?? const Uuid().v4(),
       startTime: start,
       endTime: end,
       type: _type,
@@ -414,7 +415,7 @@ class _AddSleepDialogState extends State<AddSleepDialog> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                      side: const BorderSide(color: AppColors.purple400, width: 1.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

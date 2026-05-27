@@ -5,10 +5,12 @@ import 'package:dont_forget_sleep/views/get_started/widgets/step_progress_bar.da
 
 class SchedulePlannerHeader extends StatelessWidget {
   final int currentStep;
+  final bool isSaved;
 
   const SchedulePlannerHeader({
     super.key,
     required this.currentStep,
+    this.isSaved = false,
   });
 
   @override
@@ -19,17 +21,18 @@ class SchedulePlannerHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          StepProgressBar(currentStep: currentStep, totalSteps: 3),
-          // const SizedBox(height: AppSpacing.xl),
-          const SizedBox(height: 24),
-          Text(
-            'STEP ${currentStep + 1} OF 3',
-            style: AppTextStyles.stepLabelActive.copyWith(
-              color: AppColors.purple500,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+          if (!isSaved) ...[
+            StepProgressBar(currentStep: currentStep, totalSteps: 3),
+            const SizedBox(height: 24),
+            Text(
+              'STEP ${currentStep + 1} OF 3',
+              style: AppTextStyles.stepLabelActive.copyWith(
+                color: AppColors.purple500,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

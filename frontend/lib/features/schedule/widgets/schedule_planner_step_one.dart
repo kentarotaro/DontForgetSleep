@@ -65,11 +65,11 @@ class SchedulePlannerStepOne extends StatelessWidget {
         children: [
           const Text('Your goals', style: AppTextStyles.sectionTitle),
           const SizedBox(height: AppSpacing.sm),
-           Text(
+          Text(
             'What do you want to make time for? We\'ll try to fit these around your schedule.',
             style: AppTextStyles.sectionDesc.copyWith(
-                color: AppColors.purple500,
-              )
+              color: AppColors.purple500,
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Expanded(
@@ -78,7 +78,8 @@ class SchedulePlannerStepOne extends StatelessWidget {
                 ...goals.asMap().entries.map((e) {
                   return ScheduleCard(
                     title: e.value.name,
-                    subtitle: '${formatDur(e.value.duration)} · ${e.value.frequency}',
+                    subtitle:
+                        '${formatDur(e.value.duration)} · ${e.value.frequency}',
                     barColor: goalColors[e.key % goalColors.length],
                     onDelete: () => onDeleteGoal(e.key),
                   );
@@ -92,12 +93,17 @@ class SchedulePlannerStepOne extends StatelessWidget {
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.neutral800, width: 1),
+                        border: Border.all(
+                          color: AppColors.neutral800,
+                          width: 1,
+                        ),
                       ),
                       child: Center(
                         child: Text(
                           '+ Add Goal',
-                          style: AppTextStyles.itemTitle.copyWith(color: AppColors.purple500),
+                          style: AppTextStyles.itemTitle.copyWith(
+                            color: AppColors.purple500,
+                          ),
                         ),
                       ),
                     ),
@@ -121,12 +127,12 @@ class SchedulePlannerStepOne extends StatelessWidget {
               ],
             ),
           ),
-           SecondaryButton(
-              text: 'Generate Plan',
-              onPressed: canGenerate ? onGeneratePlan : null,
-              disabledColor: const Color(0xFF452E7B),
-              disabledTextColor: const Color(0xFF7F7F7F),
-            ),
+          SecondaryButton(
+            text: 'Generate Plan',
+            onPressed: canGenerate ? onGeneratePlan : null,
+            disabledColor: const Color(0xFF452E7B),
+            disabledTextColor: const Color(0xFF7F7F7F),
+          ),
           const SizedBox(height: AppSpacing.md),
           Center(
             child: TextButton(
@@ -207,15 +213,19 @@ class _GoalFormState extends State<_GoalForm> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: ['📚 Study', '💪🏼Workout', '🧘 Meditate', '📖 Review'].map((p) => GoalChip(
-              label: p,
-              isSelected: _selectedCategory == p,
-              onTap: () {
-                setState(() => _selectedCategory = p);
-                widget.onCategoryChanged(p);
-                widget.onNameChanged(p);
-              },
-            )).toList(),
+            children: ['📚 Study', '💪🏼Workout', '🧘 Meditate', '📖 Review']
+                .map(
+                  (p) => GoalChip(
+                    label: p,
+                    isSelected: _selectedCategory == p,
+                    onTap: () {
+                      setState(() => _selectedCategory = p);
+                      widget.onCategoryChanged(p);
+                      widget.onNameChanged(p);
+                    },
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: AppSpacing.md),
           DarkInput(
@@ -224,28 +234,46 @@ class _GoalFormState extends State<_GoalForm> {
             autoFocus: true,
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('DURATION', style: AppTextStyles.stepLabelActive.copyWith(color: AppColors.textTertiary)),
+          Text(
+            'DURATION',
+            style: AppTextStyles.stepLabelActive.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.durations.map((d) => GoalChip(
-              label: widget.formatDur(d),
-              isSelected: widget.gDur == d,
-              onTap: () => widget.onDurationChanged(d),
-            )).toList(),
+            children: widget.durations
+                .map(
+                  (d) => GoalChip(
+                    label: widget.formatDur(d),
+                    isSelected: widget.gDur == d,
+                    onTap: () => widget.onDurationChanged(d),
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('FREQUENCY', style: AppTextStyles.stepLabelActive.copyWith(color: AppColors.textTertiary)),
+          Text(
+            'FREQUENCY',
+            style: AppTextStyles.stepLabelActive.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.frequencies.map((f) => GoalChip(
-              label: f,
-              isSelected: widget.gFreq == f,
-              onTap: () => widget.onFrequencyChanged(f),
-            )).toList(),
+            children: widget.frequencies
+                .map(
+                  (f) => GoalChip(
+                    label: f,
+                    isSelected: widget.gFreq == f,
+                    onTap: () => widget.onFrequencyChanged(f),
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
@@ -254,14 +282,19 @@ class _GoalFormState extends State<_GoalForm> {
                 child: OutlinedButton(
                   onPressed: widget.onCancel,
                   style: OutlinedButton.styleFrom(
-                    backgroundColor:  Colors.black,
-                   side: const BorderSide(color: AppColors.purple800),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Colors.black,
+                    side: const BorderSide(color: AppColors.purple800),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -274,7 +307,9 @@ class _GoalFormState extends State<_GoalForm> {
                     disabledBackgroundColor: const Color(0xFF452E7B),
                     foregroundColor: Colors.white,
                     disabledForegroundColor: const Color(0xFF7F7F7F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(

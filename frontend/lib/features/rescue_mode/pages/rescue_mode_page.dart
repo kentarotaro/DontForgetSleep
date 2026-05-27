@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dont_forget_sleep/services/sleep_preferences_service.dart';
 import '../models/rescue_plan_model.dart';
 import '../repositories/rescue_repository.dart';
 import '../widgets/rescue_summary_card.dart';
@@ -70,6 +71,12 @@ class _RescueModePageState extends State<RescueModePage> {
         newBedtime: _plan!.newBedtime,
       );
     });
+
+    final completedIds = _plan!.checklist
+        .where((item) => item.isCompleted)
+        .map((item) => item.id)
+        .toList();
+    _repository.updateCompletedChecklistItems(completedIds);
   }
 
   @override
@@ -121,91 +128,15 @@ class _RescueModePageState extends State<RescueModePage> {
   }
 
   Widget _buildNormalContent() {
+    final wakeTime = sleepPreferencesService.preferredWakeTime;
+    final bedtime = sleepPreferencesService.preferredBedtime;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF131428), Color(0xFF1A1630)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF2D2550), width: 1),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 92,
-                  height: 92,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF00E676).withOpacity(0.18),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    size: 64,
-                    color: Color(0xFF00E676),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  _plan!.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _plan!.subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.72),
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F1224),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFF00E676).withOpacity(0.25)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.auto_awesome, color: Color(0xFF00E676), size: 16),
-                      SizedBox(width: 8),
-                      Text(
-                        'Sleep rhythm is stable today',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          GlowingStatusWidget(title: _plan!.title, subtitle: _plan!.subtitle),
           const SizedBox(height: 20),
           Container(
             width: double.infinity,
@@ -219,7 +150,7 @@ class _RescueModePageState extends State<RescueModePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'What to keep doing',
+                  'Personalized Daily Tips',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -229,26 +160,24 @@ class _RescueModePageState extends State<RescueModePage> {
                 const SizedBox(height: 12),
                 _buildNormalTip(
                   icon: Icons.wb_sunny_outlined,
-                  title: 'Keep a steady wake-up time',
-                  subtitle: 'Wake up around the same time tomorrow.',
+                  title: 'Steady Wake-up Time',
+                  subtitle: 'Try to wake up around your preferred time ($wakeTime) tomorrow to keep your biological clock in sync.',
                 ),
                 const SizedBox(height: 12),
                 _buildNormalTip(
                   icon: Icons.local_cafe_outlined,
-                  title: 'Caffeine is fine in moderation',
-                  subtitle: 'Stay mindful of late afternoon coffee.',
+                  title: 'Caffeine Timing',
+                  subtitle: 'Caffeine is fine, but try to stop intake at least 8-10 hours before your bedtime ($bedtime) to ensure sleep quality.',
                 ),
                 const SizedBox(height: 12),
                 _buildNormalTip(
                   icon: Icons.bedtime_outlined,
-                  title: 'Protect your bedtime window',
-                  subtitle: 'A consistent bedtime keeps your rhythm balanced.',
+                  title: 'Protect Your Sleep Window',
+                  subtitle: 'Consistent sleep is key. Prepare to wind down and target your preferred bedtime of $bedtime tonight.',
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          GlowingStatusWidget(title: _plan!.title, subtitle: _plan!.subtitle),
         ],
       ),
     );

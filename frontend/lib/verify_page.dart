@@ -4,7 +4,7 @@ import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:dont_forget_sleep/theme/typography.dart';
 import 'package:dont_forget_sleep/widgets/primary_button.dart';
 import 'package:dont_forget_sleep/core/auth_service.dart';
-import 'package:dont_forget_sleep/views/get_started/onboarding_questions_screen.dart';
+import 'package:dont_forget_sleep/main.dart';
 import 'package:flutter/material.dart';
 
 class VerifyPage extends StatefulWidget {
@@ -18,24 +18,28 @@ class VerifyPage extends StatefulWidget {
 
 class _VerifyPageState extends State<VerifyPage> {
   static const int _resendSeconds = 59;
+  static const Duration _pollInterval = Duration(seconds: 5);
 
-  final TextEditingController _codeController = TextEditingController();
   final AuthService _authService = AuthService();
 
   Timer? _resendTimer;
+  Timer? _verificationTimer;
   int _secondsRemaining = _resendSeconds;
   bool _isSubmitting = false;
+  bool _isCheckingVerification = false;
+  bool _hasNavigatedAway = false;
 
   @override
   void initState() {
     super.initState();
     _startResendCountdown();
+    _startVerificationPolling();
   }
 
   @override
   void dispose() {
     _resendTimer?.cancel();
-    _codeController.dispose();
+    _verificationTimer?.cancel();
     super.dispose();
   }
 
@@ -64,40 +68,78 @@ class _VerifyPageState extends State<VerifyPage> {
     });
   }
 
-  void _handleResendCode() {
-    if (_secondsRemaining > 0) {
-      return;
-    }
-
-    _authService.resendEmailVerification().then((_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Verification email sent to ${widget.email}.')),
-      );
-      _startResendCountdown();
+  void _startVerificationPolling() {
+    _verificationTimer?.cancel();
+    _verificationTimer = Timer.periodic(_pollInterval, (_) {
+      if (!mounted || _hasNavigatedAway || _isCheckingVerification) {
+        return;
+      }
+      _checkVerification(silent: true);
     });
   }
 
-  Future<void> _handleSubmit() async {
-    setState(() => _isSubmitting = true);
+  Future<void> _checkVerification({bool silent = false}) async {
+    if (_isCheckingVerification || _hasNavigatedAway) {
+      return;
+    }
+
+    setState(() => _isCheckingVerification = true);
     final isVerified = await _authService.reloadAndCheckEmailVerified();
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
+    if (!mounted || _hasNavigatedAway) return;
+    setState(() => _isCheckingVerification = false);
 
     if (isVerified) {
+      _hasNavigatedAway = true;
+      _verificationTimer?.cancel();
+      _resendTimer?.cancel();
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const OnboardingQuestionsScreen()),
+        MaterialPageRoute(builder: (_) => const AuthWrapper()),
         (route) => false,
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Email not verified yet. Please check your inbox and click the verification link.'),
-      ),
-    );
+    if (!silent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email not verified yet. Please open the link in your inbox.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleResendCode() async {
+    if (_secondsRemaining > 0) {
+      return;
+    }
+
+    try {
+      await _authService.resendEmailVerification();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verification email sent to ${widget.email}.')),
+      );
+      _startResendCountdown();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not resend the email. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleSubmit() async {
+    setState(() => _isSubmitting = true);
+    try {
+      await _checkVerification();
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   String _formatSeconds(int seconds) {
@@ -147,41 +189,26 @@ class _VerifyPageState extends State<VerifyPage> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 28),
-                      Text(
-                        'Enter Code',
-                        style: AppTextStyles.label,
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _codeController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        textAlignVertical: TextAlignVertical.center,
-                        style: AppTextStyles.input,
-                        decoration: InputDecoration(
-                          counterText: '',
-                          hintText: 'Verification code (not used)',
-                          hintStyle: AppTextStyles.hint,
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 17,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: Colors.white,
-                              width: 1.5,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Next step',
+                              style: AppTextStyles.label.copyWith(color: Colors.white),
                             ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.purple800,
-                              width: 1.5,
+                            const SizedBox(height: 8),
+                            Text(
+                              'Open the email we sent, tap the verification link, then come back here. This screen checks automatically every few seconds.',
+                              style: AppTextStyles.terms.copyWith(color: Colors.white),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                       const Spacer(),
@@ -222,6 +249,12 @@ class _VerifyPageState extends State<VerifyPage> {
                         style: AppTextStyles.terms.copyWith(
                           color: Colors.white,
                         ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isCheckingVerification ? 'Checking verification status...' : 'Waiting for your email confirmation.',
+                        style: AppTextStyles.terms.copyWith(color: Colors.white70),
                         textAlign: TextAlign.center,
                       ),
                       const Spacer(), // 

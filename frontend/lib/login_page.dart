@@ -1,6 +1,7 @@
 import 'package:dont_forget_sleep/widgets/auth_button.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:dont_forget_sleep/models/login_item.dart';
 import 'package:dont_forget_sleep/theme/app_colors.dart';
 import 'package:dont_forget_sleep/widgets/labeled_text_field.dart';
@@ -9,7 +10,7 @@ import 'package:dont_forget_sleep/theme/typography.dart';
 import 'package:dont_forget_sleep/core/auth_service.dart';
 import 'package:dont_forget_sleep/forgot_password_page.dart';
 import 'package:dont_forget_sleep/verify_page.dart';
-import 'package:dont_forget_sleep/views/get_started/onboarding_questions_screen.dart';
+import 'package:dont_forget_sleep/main.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -45,6 +46,25 @@ class _LoginPageState extends State<LoginPage> {
         default:
           return error.message ?? 'Login gagal. Coba lagi.';
       }
+    }
+
+    if (error is PlatformException) {
+      final details = error.message ?? error.code;
+      if (details.contains('ApiException: 10') ||
+          details.contains('12500') ||
+          details.contains('DEVELOPER_ERROR')) {
+        return 'Google Sign-In belum dikonfigurasi untuk Android. Tambahkan SHA-1/SHA-256 di Firebase Console lalu unduh ulang google-services.json.';
+      }
+
+      if (details.contains('sign_in_failed') || details.contains('GoogleSignIn')) {
+        return 'Google Sign-In gagal. Cek konfigurasi Firebase Android dan koneksi internet.';
+      }
+
+      return details.isNotEmpty ? details : 'Google Sign-In gagal. Coba lagi.';
+    }
+
+    if (error is UnsupportedError) {
+      return error.message ?? 'Google Sign-In belum didukung di platform ini.';
     }
 
     return 'Login gagal. Coba lagi.';
@@ -113,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const OnboardingQuestionsScreen()),
+      MaterialPageRoute(builder: (_) => const AuthWrapper()),
       (route) => false,
     );
 
@@ -216,42 +236,77 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 16),
                     AuthButton(
                       isOutlined: true,
-                      text: 'Login with Google',
-                      onPressed: () async {
-                        try {
-                          final user = await AuthService().signInWithGoogle();
-                          if (user == null) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Google Sign-In dibatalkan.')),
-                            );
-                            return;
-                          }
+                      text: _isLoading ? 'Signing in...' : 'Login with Google',
+                      onPressed: _isLoading
+                          ? () {} // Use empty callback or null to avoid multiple triggers
+                          : () async {
+                              setState(() {
+                                _isLoading = true;
+                                _loginError = null;
+                              });
+                              try {
+                                final user = await AuthService().signInWithGoogle();
+                                if (user == null) {
+                                  if (!context.mounted) return;
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Google Sign-In dibatalkan.')),
+                                  );
+                                  return;
+                                }
 
-                          if (!context.mounted) return;
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (_) => const OnboardingQuestionsScreen()),
-                            (route) => false,
-                          );
-                        } on FirebaseAuthException catch (error) {
-                          if (!context.mounted) return;
-                          setState(() {
-                            _loginError = _friendlyAuthMessage(error);
-                          });
-                        } catch (error) {
-                          if (!context.mounted) return;
-                          setState(() {
-                            _loginError = _friendlyAuthMessage(error);
-                          });
-                        }
-                      },
-                      icon: Image.asset(
-                        'assets/images/googleLogo.png',
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.contain,
-                      ),
+                                if (!context.mounted) return;
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                                  (route) => false,
+                                );
+                              } on FirebaseAuthException catch (error) {
+                                if (!context.mounted) return;
+                                setState(() {
+                                  _isLoading = false;
+                                  _loginError = _friendlyAuthMessage(error);
+                                });
+                              } on PlatformException catch (error) {
+                                if (!context.mounted) return;
+                                setState(() {
+                                  _isLoading = false;
+                                  _loginError = _friendlyAuthMessage(error);
+                                });
+                              } on UnsupportedError catch (error) {
+                                if (!context.mounted) return;
+                                setState(() {
+                                  _isLoading = false;
+                                  _loginError = _friendlyAuthMessage(error);
+                                });
+                              } catch (error) {
+                                if (!context.mounted) return;
+                                setState(() {
+                                  _isLoading = false;
+                                  _loginError = _friendlyAuthMessage(error);
+                                });
+                              }
+                            },
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Image.asset(
+                              'assets/images/googleLogo.png',
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
+                            ),
                     ),
                   ],
                 ),
