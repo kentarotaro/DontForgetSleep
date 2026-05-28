@@ -1,0 +1,45 @@
+CLAUDE.md
+AGENT.md
+google-services.json
+GoogleService-Info.plist
+
+# Depends
+node_modules/
+functions/node_modules/
+
+# Build
+lib/
+dist/
+*.js.map
+
+# Environment variables 
+.env
+.env.*
+*.local
+
+# Private Key
+*-adminsdk-*.json
+serviceAccountKey.json
+google-services.json
+
+# Firebase Log
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# System files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+backend/functions/.env
+backend/functions/.env.*
+backend/emulator-data/
+backend/firebase-export-*/
+backend/functions/patch_firestore.js
+backend/functions/lib/
+backend/functions/node_modules/
