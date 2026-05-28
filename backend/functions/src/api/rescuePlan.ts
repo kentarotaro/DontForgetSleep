@@ -19,6 +19,7 @@ export const rescuePlan = onRequest(async (req, res) => {
 
   const { userId, currentDate, currentEnergyLevel, currentSleepDebtMinutes } = req.body;
 
+  // Validasi field wajib SEBELUM operasi apapun
   if (!userId || !currentDate || currentEnergyLevel === undefined || currentSleepDebtMinutes === undefined) {
     res.status(400).json({
       success: false,
@@ -28,14 +29,40 @@ export const rescuePlan = onRequest(async (req, res) => {
     return;
   }
 
-  try {
-    const context = await buildUserSleepContext(userId, currentDate);
+  // Normalisasi format tanggal ke YYYY-MM-DD murni setelah validasi
+  // Mencegah cache bocor jika Flutter mengirim full ISO string (e.g. 2026-05-27T00:00:00Z)
+  const safeDate = String(currentDate).split('T')[0];
 
-    if (context.sleepLogs.length < 3) {
+  try {
+    const context = await buildUserSleepContext(userId, safeDate);
+
+    if (context.sleepLogs.length < 1) {
       res.status(400).json({
         success: false,
         code: 'INSUFFICIENT_SLEEP_DATA',
-        message: 'Data tidur tidak mencukupi. Butuh minimal 3 catatan.'
+        message: 'Pengguna belum melakukan check-in tidur. AI membutuhkan minimal 1 catatan tidur.'
+      });
+      return;
+    }
+
+    const db = admin.firestore();
+    
+    // Cek cache: apakah sudah ada request rescuePlan hari ini?
+    const cacheSnapshot = await db.collection('rescueSessions')
+      .where('userId', '==', userId)
+      .where('calendarContextDate', '==', safeDate)
+      .get();
+      
+    const cachedDoc = cacheSnapshot.docs.find(doc => {
+      const data = doc.data();
+      return data.inputSnapshot && data.inputSnapshot.type === 'rescuePlan';
+    });
+
+    if (cachedDoc) {
+      console.log(`♻️ [rescuePlan] Mengembalikan CACHE untuk userId: ${userId}, tanggal: ${safeDate}`);
+      res.status(200).json({
+        success: true,
+        data: cachedDoc.data().geminiResponse
       });
       return;
     }
@@ -75,12 +102,12 @@ export const rescuePlan = onRequest(async (req, res) => {
       return;
     }
 
-    void admin.firestore().collection('rescueSessions').add({
+    void db.collection('rescueSessions').add({
       userId,
       triggeredAt: FieldValue.serverTimestamp(),
-      inputSnapshot: { userId, currentDate, currentEnergyLevel, currentSleepDebtMinutes },
+      inputSnapshot: { userId, currentDate: safeDate, currentEnergyLevel, currentSleepDebtMinutes, type: 'rescuePlan' },
       geminiResponse: geminiResponseObj,
-      calendarContextDate: currentDate
+      calendarContextDate: safeDate
     });
 
     res.status(200).json({

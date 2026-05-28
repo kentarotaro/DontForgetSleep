@@ -19,6 +19,7 @@ export const dailyInsight = onRequest(async (req, res) => {
 
   const { userId, date } = req.body;
 
+  // Validasi field wajib SEBELUM operasi apapun
   if (!userId || !date) {
     res.status(400).json({
       success: false,
@@ -28,16 +29,41 @@ export const dailyInsight = onRequest(async (req, res) => {
     return;
   }
 
+  // Normalisasi format tanggal ke YYYY-MM-DD murni setelah validasi
+  const safeDate = String(date).split('T')[0];
+
   try {
-    const context = await buildUserSleepContext(userId, date);
+    const context = await buildUserSleepContext(userId, safeDate);
 
     console.log(`📊 sleepLogs ditemukan: ${context.sleepLogs.length} untuk userId: ${userId}`);
 
-    if (context.sleepLogs.length < 5) {
+    if (context.sleepLogs.length < 1) {
       res.status(400).json({
         success: false,
         code: 'INSUFFICIENT_SLEEP_DATA',
-        message: 'Data tidur tidak mencukupi untuk insight. Butuh minimal 5 catatan.'
+        message: 'Pengguna belum melakukan check-in tidur. AI membutuhkan minimal 1 catatan tidur.'
+      });
+      return;
+    }
+
+    const db = admin.firestore();
+    
+    // Cek cache: apakah sudah ada request dailyInsight hari ini?
+    const cacheSnapshot = await db.collection('rescueSessions')
+      .where('userId', '==', userId)
+      .where('calendarContextDate', '==', safeDate)
+      .get();
+      
+    const cachedDoc = cacheSnapshot.docs.find(doc => {
+      const data = doc.data();
+      return data.inputSnapshot && data.inputSnapshot.type === 'dailyInsight';
+    });
+
+    if (cachedDoc) {
+      console.log(`♻️ [dailyInsight] Mengembalikan CACHE untuk userId: ${userId}, tanggal: ${safeDate}`);
+      res.status(200).json({
+        success: true,
+        data: cachedDoc.data().geminiResponse
       });
       return;
     }
@@ -77,12 +103,12 @@ export const dailyInsight = onRequest(async (req, res) => {
       return;
     }
 
-    void admin.firestore().collection('rescueSessions').add({
+    void db.collection('rescueSessions').add({
       userId,
       triggeredAt: FieldValue.serverTimestamp(),
-      inputSnapshot: { userId, date, type: 'dailyInsight' },
+      inputSnapshot: { userId, date: safeDate, type: 'dailyInsight' },
       geminiResponse: geminiResponseObj,
-      calendarContextDate: date
+      calendarContextDate: safeDate
     });
 
     res.status(200).json({
