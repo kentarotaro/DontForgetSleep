@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isOwner(resourceData) {
+      return request.auth != null && resourceData.userId == request.auth.uid;
+    }
+    
+    function isCreatingForSelf() {
+      return request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /userProfiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /sleepLogs/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
+    }
+
+    match /dailyCheckins/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
+    }
+
+    match /scheduleItems/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
+    }
+
+    match /goals/{docId} {
+      allow read: if isOwner(resource.data);
+      allow create: if isCreatingForSelf();
+      allow update: if isOwner(resource.data) && isCreatingForSelf();
+      allow delete: if isOwner(resource.data);
+    }
+
+    match /calendarEvents/{docId} {
+      allow read: if isOwner(resource.data);
+      allow write: if false; 
+    }
+
+    match /rescueSessions/{docId} {
+      allow read: if isOwner(resource.data);
+      allow write: if false;
+    }
+  }
+}
